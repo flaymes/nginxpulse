@@ -45,7 +45,7 @@
 docker run -d --name nginxpulse \
   -p 8088:8088 \
   -p 8089:8089 \
-  -e WEBSITES='[{"name":"主站","logPath":"/share/log/nginx/access.log","domains":["example.com","www.example.com"]}]' \
+  -e WEBSITES='[{"name":"主站","logPath":"/share/log/nginx/access.log","domains":["kaisir.cn","www.kaisir.cn"]}]' \
   -v ./nginx_data/logs/all/access.log:/share/log/nginx/access.log:ro \
   -v "$(pwd)/var/nginxpulse_data:/app/var/nginxpulse_data" \
   magiccoders/nginxpulse:latest
@@ -58,7 +58,7 @@ docker build -t nginxpulse:local .
 docker run -d --name nginxpulse \
   -p 8088:8088 \
   -p 8089:8089 \
-  -e WEBSITES='[{"name":"主站","logPath":"/share/log/nginx/access.log","domains":["example.com","www.example.com"]}]' \
+  -e WEBSITES='[{"name":"主站","logPath":"/share/log/nginx/access.log","domains":["kaisir.cn","www.kaisir.cn"]}]' \
   -v ./nginx_data/logs/all/access.log:/share/log/nginx/access.log:ro \
   -v "$(pwd)/var/nginxpulse_data:/app/var/nginxpulse_data" \
   nginxpulse:local
@@ -91,7 +91,7 @@ services:
       - "8088:8088"
       - "8089:8089"
     environment:
-      WEBSITES: '[{"name":"主站","logPath":"/share/log/nginx/access.log","domains":["example.com","www.example.com"]}]'
+      WEBSITES: '[{"name":"主站","logPath":"/share/log/nginx/access.log","domains":["kaisir.cn","www.kaisir.cn"]}]'
     volumes:
       - ./nginx_data/logs/all/access.log:/share/log/nginx/access.log:ro
       - ./var/nginxpulse_data:/app/var/nginxpulse_data
@@ -113,7 +113,7 @@ services:
       - "8088:8088"
       - "8089:8089"
     environment:
-      WEBSITES: '[{"name":"主站","logPath":"/share/log/nginx/access.log","domains":["example.com","www.example.com"]}]'
+      WEBSITES: '[{"name":"主站","logPath":"/share/log/nginx/access.log","domains":["kaisir.cn","www.kaisir.cn"]}]'
     volumes:
       - ./nginx_data/logs/all/access.log:/share/log/nginx/access.log:ro
       - ./var/nginxpulse_data:/app/var/nginxpulse_data
@@ -181,10 +181,10 @@ WEBSITES 它的值是个数组，参数对象中传入网站名、网址、日�
 参考示例:
 ```yaml
 environment:
-  WEBSITES: '[{"name":"网站1","logPath":"/share/nginx/log/access-site1.log","domains":["www.kaisir.cn","kaisir.cn"]}, {"name":"网站2","logPath":"/share/nginx/log/access-site2.log","domains":["home.kaisir.cn"]}]'
+  WEBSITES: '[{"name":"网站1","logPath":"/share/log/nginx/access-site1.log","domains":["www.kaisir.cn","kaisir.cn"]}, {"name":"网站2","logPath":"/share/log/nginx/access-site2.log","domains":["home.kaisir.cn"]}]'
 volumes:
-  - ./nginx_data/logs/site1/access.log:/share/nginx/log/access-site1.log:ro
-  - ./nginx_data/logs/site2/access.log:/share/nginx/log/access-site2.log:ro
+  - ./nginx_data/logs/site1/access.log:/share/log/nginx/access-site1.log:ro
+  - ./nginx_data/logs/site2/access.log:/share/log/nginx/access-site2.log:ro
 ```
 
 如果你有很多个网站要分析，一个个挂载太麻烦，你可以考虑将日志目录整体挂载进去，然后在WEBSITES里去指定具体的日志文件即可。
@@ -192,12 +192,12 @@ volumes:
 比如：
 ```yaml
 environment:
-  WEBSITES: '[{"name":"网站1","logPath":"/share/nginx/log/access-site1.log","domains":["www.kaisir.cn","kaisir.cn"]}, {"name":"网站2","logPath":"/share/nginx/log/access-site2.log","domains":["home.kaisir.cn"]}]'
+  WEBSITES: '[{"name":"网站1","logPath":"/share/log/nginx/access-site1.log","domains":["www.kaisir.cn","kaisir.cn"]}, {"name":"网站2","logPath":"/share/log/nginx/access-site2.log","domains":["home.kaisir.cn"]}]'
 volumes:
-  - ./nginx_data/logs:/share/nginx/log/
+  - ./nginx_data/logs:/share/log/nginx/
 ```
 
-> 注意：如果你的nginx日志是按天进行切割的，可以使用 * 来替代日期，比如：{"logPath": "/share/nginx/log/site1.top-*.log"}
+> 注意：如果你的nginx日志是按天进行切割的，可以使用 * 来替代日期，比如：{"logPath": "/share/log/nginx/site1.top-*.log"}
 
 ## 二次开发注意事项
 

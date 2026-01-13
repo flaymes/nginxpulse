@@ -9,7 +9,7 @@ services:
       - "8088:8088"
       - "8089:8089"
     environment:
-      WEBSITES: '[{"name":"主站","logPath":"/share/log/nginx/access.log","domains":["example.com","www.example.com"]}]'
+      WEBSITES: '[{"name":"主站","logPath":"/share/log/nginx/access.log","domains":["kaisir.cn","www.kaisir.cn"]}]'
     volumes:
       - ./nginx_data/logs/all/access.log:/share/log/nginx/access.log:ro
       - ./var/nginxpulse_data:/app/var/nginxpulse_data

@@ -51,15 +51,18 @@ type LogParser struct {
 	repo      *store.Repository
 	statePath string
 	states    map[string]LogScanState // 各网站的扫描状态，以网站ID为键
+	demoMode  bool
 }
 
 // NewLogParser 创建新的日志解析器
 func NewLogParser(userRepoPtr *store.Repository) *LogParser {
 	statePath := filepath.Join(config.DataDir, "nginx_scan_state.json")
+	cfg := config.ReadConfig()
 	parser := &LogParser{
 		repo:      userRepoPtr,
 		statePath: statePath,
 		states:    make(map[string]LogScanState),
+		demoMode:  cfg.System.DemoMode,
 	}
 	parser.loadState()
 	enrich.InitPVFilters()
@@ -123,6 +126,9 @@ func (p *LogParser) CleanOldLogs() error {
 
 // ScanNginxLogs 增量扫描Nginx日志文件
 func (p *LogParser) ScanNginxLogs() []ParserResult {
+	if p.demoMode {
+		return []ParserResult{}
+	}
 	if !startIPParsing() {
 		return []ParserResult{}
 	}
@@ -134,6 +140,9 @@ func (p *LogParser) ScanNginxLogs() []ParserResult {
 
 // ScanNginxLogsForWebsite 扫描指定网站的日志文件
 func (p *LogParser) ScanNginxLogsForWebsite(websiteID string) []ParserResult {
+	if p.demoMode {
+		return []ParserResult{}
+	}
 	if !startIPParsing() {
 		return []ParserResult{}
 	}
@@ -154,6 +163,20 @@ func (p *LogParser) ResetScanState(websiteID string) {
 
 // TriggerReparse 清空指定网站的日志并触发重新解析
 func (p *LogParser) TriggerReparse(websiteID string) error {
+	if p.demoMode {
+		var err error
+		if websiteID == "" {
+			err = p.repo.ClearAllLogs()
+		} else {
+			err = p.repo.ClearLogsForWebsite(websiteID)
+		}
+		if err != nil {
+			return err
+		}
+		p.ResetScanState(websiteID)
+		return nil
+	}
+
 	if !startIPParsing() {
 		return ErrParsingInProgress
 	}

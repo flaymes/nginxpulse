@@ -8,7 +8,8 @@
   ],
   "system": {
     "logDestination": "file",
-    "taskInterval": "1m"
+    "taskInterval": "1m",
+    "demoMode": false
   },
   "server": {
     "Port": ":8089"

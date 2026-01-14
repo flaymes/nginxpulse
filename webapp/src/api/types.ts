@@ -10,6 +10,7 @@ export interface WebsitesResponse {
 export interface AppStatusResponse {
   log_parsing: boolean;
   log_parsing_progress?: number;
+  demo_mode?: boolean;
 }
 
 export interface TimeSeriesStats {

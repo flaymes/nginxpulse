@@ -155,41 +155,43 @@ func validateConfig() bool {
 		return true
 	}
 
-	// 检查每个日志文件是否存在
-	var missingLogs []string
-	for _, site := range cfg.Websites {
-		if site.LogPath == "" {
-			missingLogs = append(missingLogs,
-				fmt.Sprintf("'%s' (缺少日志文件路径配置)", site.Name))
-			continue
-		}
-
-		// 检查日志文件是否存在，支持通配符模式
-		if strings.Contains(site.LogPath, "*") {
-			matches, err := filepath.Glob(site.LogPath)
-			if err != nil || len(matches) == 0 {
+	if !cfg.System.DemoMode {
+		// 检查每个日志文件是否存在
+		var missingLogs []string
+		for _, site := range cfg.Websites {
+			if site.LogPath == "" {
 				missingLogs = append(missingLogs,
-					fmt.Sprintf("'%s' (%s - 未找到匹配的文件)",
-						site.Name, site.LogPath))
+					fmt.Sprintf("'%s' (缺少日志文件路径配置)", site.Name))
+				continue
 			}
-		} else if _, err := os.Stat(site.LogPath); os.IsNotExist(err) {
-			// 普通文件路径
-			missingLogs = append(missingLogs,
-				fmt.Sprintf("'%s' (%s)", site.Name, site.LogPath))
+
+			// 检查日志文件是否存在，支持通配符模式
+			if strings.Contains(site.LogPath, "*") {
+				matches, err := filepath.Glob(site.LogPath)
+				if err != nil || len(matches) == 0 {
+					missingLogs = append(missingLogs,
+						fmt.Sprintf("'%s' (%s - 未找到匹配的文件)",
+							site.Name, site.LogPath))
+				}
+			} else if _, err := os.Stat(site.LogPath); os.IsNotExist(err) {
+				// 普通文件路径
+				missingLogs = append(missingLogs,
+					fmt.Sprintf("'%s' (%s)", site.Name, site.LogPath))
+			}
 		}
-	}
 
-	// 如果有缺失的日志文件，返回错误
-	if len(missingLogs) > 0 {
-		errMsg := "以下网站的日志文件不存在:\n"
-		for _, missing := range missingLogs {
-			errMsg += " - " + missing + "\n"
+		// 如果有缺失的日志文件，返回错误
+		if len(missingLogs) > 0 {
+			errMsg := "以下网站的日志文件不存在:\n"
+			for _, missing := range missingLogs {
+				errMsg += " - " + missing + "\n"
+			}
+
+			fmt.Fprintf(os.Stderr, "读取配置文件失败: %v\n", errMsg)
+			fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
+
+			return true
 		}
-
-		fmt.Fprintf(os.Stderr, "读取配置文件失败: %v\n", errMsg)
-		fmt.Fprintf(os.Stderr, "请修正配置问题后重新启动服务\n")
-
-		return true
 	}
 
 	// 检查PV过滤器配置

@@ -42,6 +42,13 @@
     </aside>
 
     <main class="main-content" :class="[mainClass, { 'parsing-lock': parsingActive }]">
+      <div v-if="demoMode" class="demo-mode-banner">
+        <span class="demo-mode-badge">演示模式</span>
+        <span class="demo-mode-text">
+          当前处于演示模式，数据均为模拟数据。项目源码请移步：
+          <a href="https://github.com/likaia/nginxpulse/" target="_blank" rel="noopener">https://github.com/likaia/nginxpulse/</a>
+        </span>
+      </div>
       <RouterView />
     </main>
   </div>
@@ -50,6 +57,7 @@
 <script setup lang="ts">
 import { computed, onMounted, provide, ref, watch } from 'vue';
 import { RouterLink, RouterView, useRoute } from 'vue-router';
+import { fetchAppStatus } from '@/api';
 
 const route = useRoute();
 
@@ -62,6 +70,7 @@ const isActive = (path: string) => route.path === path;
 const isDark = ref(localStorage.getItem('darkMode') === 'true');
 const parsingActive = ref(false);
 const liveVisitorCount = ref<number | null>(null);
+const demoMode = ref(false);
 
 const applyTheme = (value: boolean) => {
   if (value) {
@@ -81,6 +90,7 @@ const toggleTheme = () => {
 
 onMounted(() => {
   applyTheme(isDark.value);
+  refreshAppStatus();
 });
 
 watch(isDark, (value) => {
@@ -100,6 +110,17 @@ provide('setLiveVisitorCount', (value: number | null) => {
   liveVisitorCount.value = value;
 });
 
+provide('demoMode', demoMode);
+
+async function refreshAppStatus() {
+  try {
+    const status = await fetchAppStatus();
+    demoMode.value = Boolean(status.demo_mode);
+  } catch (error) {
+    console.error('获取系统状态失败:', error);
+  }
+}
+
 const liveVisitorText = computed(() =>
   Number.isFinite(liveVisitorCount.value ?? NaN)
     ? (liveVisitorCount.value as number).toLocaleString('zh-CN')
@@ -107,4 +128,42 @@ const liveVisitorText = computed(() =>
 );
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.demo-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.08);
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-soft);
+}
+
+.demo-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+}
+
+.demo-mode-text {
+  color: inherit;
+  line-height: 1.5;
+}
+
+.demo-mode-text a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+</style>

@@ -42,9 +42,11 @@ func SetupRoutes(
 	})
 
 	router.GET("/api/status", func(c *gin.Context) {
+		cfg := config.ReadConfig()
 		c.JSON(http.StatusOK, gin.H{
 			"log_parsing":          ingest.IsIPParsing(),
 			"log_parsing_progress": ingest.GetIPParsingProgress(),
+			"demo_mode":            cfg.System.DemoMode,
 		})
 	})
 

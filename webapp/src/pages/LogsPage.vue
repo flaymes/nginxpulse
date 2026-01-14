@@ -163,36 +163,46 @@
       :closable="!reparseLoading"
       :dismissableMask="!reparseLoading"
       class="reparse-dialog"
-      header="重新解析日志"
+      :header="reparseDialogTitle"
     >
       <div class="reparse-dialog-body">
-        <p>
-          该操作将清空「{{ currentWebsiteLabel }}」现有访问明细，并从日志文件重新解析。
-        </p>
-        <p class="reparse-dialog-note">解析过程不可撤销，可能需要几分钟。</p>
+        <template v-if="reparseDialogMode === 'blocked'">
+          <p>当前处于演示模式，演示数据不支持重新解析。</p>
+        </template>
+        <template v-else>
+          <p>
+            该操作将清空「{{ currentWebsiteLabel }}」现有访问明细，并从日志文件重新解析。
+          </p>
+          <p class="reparse-dialog-note">解析过程不可撤销，可能需要几分钟。</p>
+        </template>
         <p v-if="reparseError" class="reparse-dialog-error">{{ reparseError }}</p>
       </div>
       <template #footer>
-        <Button
-          text
-          severity="secondary"
-          label="取消"
-          :disabled="reparseLoading"
-          @click="reparseDialogVisible = false"
-        />
-        <Button
-          severity="danger"
-          label="继续重新解析"
-          :loading="reparseLoading"
-          @click="confirmReparse"
-        />
+        <template v-if="reparseDialogMode === 'blocked'">
+          <Button label="我知道了" @click="reparseDialogVisible = false" />
+        </template>
+        <template v-else>
+          <Button
+            text
+            severity="secondary"
+            label="取消"
+            :disabled="reparseLoading"
+            @click="reparseDialogVisible = false"
+          />
+          <Button
+            severity="danger"
+            label="继续重新解析"
+            :loading="reparseLoading"
+            @click="confirmReparse"
+          />
+        </template>
       </template>
     </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, inject, onMounted, ref, watch } from 'vue';
 import Dialog from 'primevue/dialog';
 import { fetchLogs, fetchWebsites, reparseLogs } from '@/api';
 import type { WebsiteInfo } from '@/api/types';
@@ -216,6 +226,8 @@ const pageJump = ref<number | null>(null);
 const reparseDialogVisible = ref(false);
 const reparseLoading = ref(false);
 const reparseError = ref('');
+const reparseDialogMode = ref<'confirm' | 'blocked'>('confirm');
+const demoMode = inject<{ value: boolean } | null>('demoMode', null);
 
 const sortFieldOptions = [
   { value: 'timestamp', label: '时间' },
@@ -248,6 +260,10 @@ const currentWebsiteLabel = computed(() => {
 });
 
 const reparseButtonLabel = computed(() => (ipParsing.value ? '解析中...' : '重新解析日志'));
+const isDemoMode = computed(() => demoMode?.value ?? false);
+const reparseDialogTitle = computed(() =>
+  reparseDialogMode.value === 'blocked' ? '演示模式' : '重新解析日志'
+);
 
 function normalizeProgress(value: unknown): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -388,10 +404,20 @@ function applySearch() {
 
 function openReparseDialog() {
   reparseError.value = '';
+  if (isDemoMode.value) {
+    reparseDialogMode.value = 'blocked';
+    reparseDialogVisible.value = true;
+    return;
+  }
+  reparseDialogMode.value = 'confirm';
   reparseDialogVisible.value = true;
 }
 
 async function confirmReparse() {
+  if (reparseDialogMode.value !== 'confirm') {
+    reparseDialogVisible.value = false;
+    return;
+  }
   if (!currentWebsiteId.value) {
     return;
   }

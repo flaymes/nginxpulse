@@ -52,9 +52,14 @@ func Run() error {
 
 	go worker.InitialScan(logParser)
 
-	interval := config.ParseInterval(cfg.System.TaskInterval, 5*time.Minute)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	if cfg.System.DemoMode {
+		go worker.RunDemoGenerator(ctx, repository, time.Minute)
+	}
+
+	interval := config.ParseInterval(cfg.System.TaskInterval, 5*time.Minute)
 	go worker.RunScheduler(ctx, logParser, interval)
 
 	return waitForShutdown(cancel, serverHandle)

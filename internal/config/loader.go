@@ -17,6 +17,7 @@ const (
 	envPVStatusCodes     = "PV_STATUS_CODES"
 	envPVExcludePatterns = "PV_EXCLUDE_PATTERNS"
 	envPVExcludeIPs      = "PV_EXCLUDE_IPS"
+	envDemoMode          = "DEMO_MODE"
 )
 
 var (
@@ -37,6 +38,7 @@ var (
 	defaultSystem = SystemConfig{
 		LogDestination: "file",
 		TaskInterval:   "1m",
+		DemoMode:       false,
 	}
 	defaultServer = ServerConfig{
 		Port: ":8089",
@@ -109,6 +111,14 @@ func applyEnvOverrides(cfg *Config) error {
 
 	if raw, _ := getEnvValue(envTaskInterval); raw != "" {
 		cfg.System.TaskInterval = raw
+	}
+
+	if raw, key := getEnvValue(envDemoMode); raw != "" {
+		parsed, err := strconv.ParseBool(raw)
+		if err != nil {
+			return fmt.Errorf("解析 %s 失败: %w", key, err)
+		}
+		cfg.System.DemoMode = parsed
 	}
 
 	if raw, _ := getEnvValue(envServerPort); raw != "" {

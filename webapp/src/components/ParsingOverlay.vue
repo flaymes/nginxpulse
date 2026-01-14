@@ -23,6 +23,7 @@ const setParsingActive = inject<((value: boolean) => void) | null>('setParsingAc
 
 const isParsing = ref(false);
 const progressPercent = ref<number | null>(null);
+const bodyOverflow = ref<string | null>(null);
 const POLL_INTERVAL = 5000;
 let timer: number | null = null;
 let lastParsing: boolean | null = null;
@@ -45,6 +46,30 @@ function setVisible(value: boolean) {
   isParsing.value = value;
   setParsingActive?.(value);
   emit('update:active', value);
+  setBodyScrollLocked(value);
+}
+
+function setBodyScrollLocked(locked: boolean) {
+  if (typeof document === 'undefined') {
+    return;
+  }
+  const body = document.body;
+  if (!body) {
+    return;
+  }
+  if (locked) {
+    if (bodyOverflow.value === null) {
+      bodyOverflow.value = body.style.overflow;
+    }
+    body.style.overflow = 'hidden';
+    return;
+  }
+  if (bodyOverflow.value !== null) {
+    body.style.overflow = bodyOverflow.value;
+    bodyOverflow.value = null;
+    return;
+  }
+  body.style.overflow = '';
 }
 
 async function refresh() {
@@ -103,5 +128,6 @@ onBeforeUnmount(() => {
   stop();
   document.removeEventListener('visibilitychange', handleVisibility);
   setParsingActive?.(false);
+  setBodyScrollLocked(false);
 });
 </script>

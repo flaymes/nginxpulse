@@ -35,9 +35,10 @@ RUN apk add --no-cache su-exec \
 
 COPY --from=backend-builder /out/nginxpulse /app/nginxpulse
 COPY entrypoint.sh /app/entrypoint.sh
+COPY docs/external_ips.txt /app/assets/external_ips.txt
 COPY --from=webapp-builder /app/webapp/dist /usr/share/nginx/html
 COPY configs/nginx_frontend.conf /etc/nginx/conf.d/default.conf
-RUN mkdir -p /app/var/nginxpulse_data \
+RUN mkdir -p /app/var/nginxpulse_data /app/assets \
     && chown -R nginxpulse:nginxpulse /app \
     && chmod +x /app/entrypoint.sh
 

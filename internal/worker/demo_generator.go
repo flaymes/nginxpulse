@@ -162,19 +162,30 @@ func intRange(rng *rand.Rand, min, max int) string {
 }
 
 func loadExternalIPs() []string {
-	path := filepath.Join(config.DataDir, "external_ips.txt")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil
+	paths := []string{
+		filepath.Join(config.DataDir, "external_ips.txt"),
+		filepath.Join("/app", "assets", "external_ips.txt"),
+		filepath.Join("docs", "external_ips.txt"),
 	}
-	lines := strings.Split(string(data), "\n")
-	ips := make([]string, 0, len(lines))
-	for _, line := range lines {
-		ip := strings.TrimSpace(line)
-		if ip == "" {
+
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
 			continue
 		}
-		ips = append(ips, ip)
+		lines := strings.Split(string(data), "\n")
+		ips := make([]string, 0, len(lines))
+		for _, line := range lines {
+			ip := strings.TrimSpace(line)
+			if ip == "" {
+				continue
+			}
+			ips = append(ips, ip)
+		}
+		if len(ips) > 0 {
+			return ips
+		}
 	}
-	return ips
+
+	return nil
 }

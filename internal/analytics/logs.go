@@ -324,7 +324,7 @@ func (m *LogsStatsManager) Query(query StatsQuery) (StatsResult, error) {
 		var baseQuery strings.Builder
 		if includeNewVisitor {
 			baseQuery.WriteString(fmt.Sprintf(`
-        base AS (
+        WITH base AS (
             SELECT
                 %s,
                 CASE WHEN fs.first_ts >= ? AND fs.first_ts < ? THEN 1 ELSE 0 END AS is_new_visitor

@@ -150,27 +150,44 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_REPO != '' }}
     permissions:
       contents: read
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_REPO }}
     steps:
+      - name: Check Docker Hub secrets
+        id: docker_secrets
+        run: |
+          if [[ -n "$DOCKERHUB_USERNAME" && -n "$DOCKERHUB_TOKEN" && -n "$DOCKERHUB_REPO" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Docker Hub secrets missing. Skip docker publish."
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
+        if: steps.docker_secrets.outputs.enabled == 'true'
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
+        if: steps.docker_secrets.outputs.enabled == 'true'
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
+        if: steps.docker_secrets.outputs.enabled == 'true'
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
+        if: steps.docker_secrets.outputs.enabled == 'true'
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
 
       - name: Publish multi-arch image
+        if: steps.docker_secrets.outputs.enabled == 'true'
         env:
-          DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_REPO }}
           VERSION: ${{ github.ref_name }}
         run: ./scripts/publish_docker.sh -r "$DOCKERHUB_REPO"

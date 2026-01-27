@@ -1570,6 +1570,8 @@ func tokenRegexForVar(name string, used map[string]bool, quoted bool) string {
 		return addGroup("ua", optionalTokenPattern)
 	case "host":
 		return addGroup("host", requiredTokenPattern)
+	case "http_host":
+		return addGroup("host", requiredTokenPattern)
 	case "server_name":
 		return addGroup("server_name", requiredTokenPattern)
 	case "scheme":

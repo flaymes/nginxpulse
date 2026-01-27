@@ -14,6 +14,8 @@ docker run -d --name nginxpulse \
   nginxpulse:latest
 ```
 
+若日志目录已挂载但无数据，通常是权限问题，请参考《Deployment》中的“Docker 部署权限说明”，用 `PUID/PGID` 对齐宿主机 UID/GID。
+
 打开：
 - 前端: `http://localhost:8088`
 - API: `http://localhost:8089`

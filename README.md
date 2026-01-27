@@ -25,6 +25,7 @@
   - [3) 手动构建（前端、后端）](#3-手动构建前端后端)
   - [4) 单体部署（单进程）](#4-单体部署单进程)
   - [5) Makefile 常用命令](#5-makefile-常用命令)
+- [Docker 部署权限说明](#docker-部署权限说明)
 - [常见问题](#常见问题)
 - [目录结构与主要文件](#目录结构与主要文件)
 
@@ -179,14 +180,57 @@ VERSION=v0.4.8 make backend
 - `make single` 默认构建 `linux/amd64` 与 `linux/arm64`，产物在 `bin/linux_amd64/` 与 `bin/linux_arm64/`。
 - 单平台构建时，产物在 `bin/nginxpulse`，配置在 `bin/configs/nginxpulse_config.json`（端口默认 `:8088`），gzip 示例在 `bin/var/log/gz-log-read-test/`。
 
+## Docker 部署权限说明
+
+镜像默认以非 root 用户（`nginxpulse`）运行。容器里能否读取日志、写入数据，**取决于宿主机目录的权限**。你在容器里用 `cat` 看到日志，通常是因为 `docker exec` 默认是 root，不代表应用用户有权限。
+
+推荐做法：**让容器内用户的 UID/GID 与宿主机日志/数据目录的属主一致**。
+
+步骤 1：查看宿主机目录的 UID/GID
+```bash
+ls -n /path/to/logs /path/to/nginxpulse_data /path/to/pgdata
+# 或
+stat -c '%u %g %n' /path/to/logs /path/to/nginxpulse_data /path/to/pgdata
+```
+
+步骤 2：启动容器时传入 `PUID/PGID`（与上面一致）
+```bash
+docker run ... \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  -v /path/to/logs:/var/log/nginx:ro \
+  -v /path/to/nginxpulse_data:/app/var/nginxpulse_data:rw \
+  -v /path/to/pgdata:/app/var/pgdata:rw \
+  ...
+```
+
+步骤 3：确保目录对该 UID/GID 可读/可写
+```bash
+chown -R 1000:1000 /path/to/nginxpulse_data /path/to/pgdata
+chmod -R u+rx /path/to/logs
+```
+
+如果你使用外部数据库（设置 `DB_DSN`），可以不挂载 `pgdata`。
+
+SELinux 说明（RHEL/CentOS/Fedora 等）：
+- 这些系统默认启用 SELinux，Docker 挂载目录可能因安全上下文导致“看得见但不可访问”。
+- 解决办法是在 volume 后加 `:z` 或 `:Z` 重新打标签：
+  - `:Z` 让该目录仅供当前容器使用（更严格）。
+  - `:z` 让该目录可被多个容器共享使用。
+```bash
+docker run ... \
+  -v /path/to/logs:/var/log/nginx:ro,Z \
+  -v /path/to/nginxpulse_data:/app/var/nginxpulse_data:rw,Z \
+  -v /path/to/pgdata:/app/var/pgdata:rw,Z \
+  ...
+```
+
+不推荐做法：直接 `chmod -R 777`。这虽然省事，但权限过宽不安全，仅建议临时排查时使用。
+
 ## 常见问题
 
 1) 日志明细无内容  
-通常是容器内无权限访问宿主机日志文件。请尝试为宿主机日志目录与 `nginxpulse_data` 目录赋权：
-```bash
-chmod -R 777 /path/to/logs /path/to/nginxpulse_data
-```
-然后重启容器。
+通常是容器内无权限访问宿主机日志文件。请先阅读《Docker 部署权限说明》并按步骤处理权限。
 
 2) 日志存在，但 PV/UV 无法统计  
 默认规则会排除内网 IP。若你希望统计内网流量，请将 `PV_EXCLUDE_IPS` 设为空数组并重启：
@@ -199,7 +243,7 @@ PV_EXCLUDE_IPS='[]'
 通常是运行环境时区未同步导致。请确认 Docker/系统时区正确，并按“时区设置（重要）”章节调整后重新解析日志。
 
 4) 无法启动
-报错 tmp 目录无权限写入问题（旧版本可能出现），如果容器启动后出现如下所示的报错，请确认 `nginxpulse_data` 可写，或设置 `TMPDIR` 到可写目录。
+报错 tmp 目录无权限写入问题（旧版本可能出现），如果容器启动后出现如下所示的报错，请确认 `nginxpulse_data` 可写（具体权限问题请阅读《Docker 部署权限说明》），或设置 `TMPDIR` 到可写目录。
 ```bash
 nginxpulse: initializing postgres data dir at /app/var/pgdata
 /app/entrypoint.sh: line 91: can't create /tmp/tmp.KOdAPn: Permission denied
@@ -209,16 +253,6 @@ nginxpulse: initializing postgres data dir at /app/var/pgdata
 -e TMPDIR=/app/var/nginxpulse_data/tmp
 ```
 
-5) 初始化时报错日志无法访问
-
-先排查是不是宿主机的日志目录权限问题，确保容器内可以访问。
-
-如果权限没问题，可以尝试加多一个WEBSITES参数解决
-```bash
--e WEBSITES=
-```
-
-![5afcd951a7076cd15a67e535ec530af3](https://resource.kaisir.cn/uploads/MarkDownImg/20260127/2uL4ws.png)
 ## 目录结构与主要文件
 
 ```

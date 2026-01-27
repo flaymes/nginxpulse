@@ -26,6 +26,7 @@ Lightweight Nginx access log analytics and visualization dashboard with realtime
   - [3) Manual Build (Frontend + Backend)](#3-manual-build-frontend--backend)
   - [4) Single Binary Deployment (Single Process)](#4-single-binary-deployment-single-process)
   - [5) Makefile Commands](#5-makefile-commands)
+- [Docker Deployment Permissions](#docker-deployment-permissions)
 - [FAQ](#faq)
 - [Directory Structure and Key Files](#directory-structure-and-key-files)
 - [Final Notes](#final-notes)
@@ -180,14 +181,57 @@ Notes:
 - `make single` builds `linux/amd64` and `linux/arm64` by default. Outputs are in `bin/linux_amd64/` and `bin/linux_arm64/`.
 - For single-platform builds, the output is `bin/nginxpulse`, the config is `bin/configs/nginxpulse_config.json` (default port `:8088`), and gzip examples are in `bin/var/log/gz-log-read-test/`.
 
+## Docker Deployment Permissions
+
+The image runs as a non-root user (`nginxpulse`) by default. Whether the app can read logs or write data depends on **host directory permissions**. If you can `cat` files via `docker exec`, you are likely root; it does not mean the app user can access them.
+
+Recommended approach: **align container UID/GID with host directory ownership**.
+
+Step 1: Check host directory UID/GID
+```bash
+ls -n /path/to/logs /path/to/nginxpulse_data /path/to/pgdata
+# or
+stat -c '%u %g %n' /path/to/logs /path/to/nginxpulse_data /path/to/pgdata
+```
+
+Step 2: Pass `PUID/PGID` when starting the container
+```bash
+docker run ... \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  -v /path/to/logs:/var/log/nginx:ro \
+  -v /path/to/nginxpulse_data:/app/var/nginxpulse_data:rw \
+  -v /path/to/pgdata:/app/var/pgdata:rw \
+  ...
+```
+
+Step 3: Ensure directories are readable/writable for that UID/GID
+```bash
+chown -R 1000:1000 /path/to/nginxpulse_data /path/to/pgdata
+chmod -R u+rx /path/to/logs
+```
+
+If you use an external database (`DB_DSN`), you can skip mounting `pgdata`.
+
+SELinux note (RHEL/CentOS/Fedora):
+- These systems enable SELinux by default. Docker volumes may be visible but still inaccessible due to labels.
+- Add `:z` or `:Z` to re-label the mount:
+  - `:Z` for exclusive use by this container.
+  - `:z` to share across multiple containers.
+```bash
+docker run ... \
+  -v /path/to/logs:/var/log/nginx:ro,Z \
+  -v /path/to/nginxpulse_data:/app/var/nginxpulse_data:rw,Z \
+  -v /path/to/pgdata:/app/var/pgdata:rw,Z \
+  ...
+```
+
+Not recommended: `chmod -R 777`. It is unsafe; only use it for temporary debugging.
+
 ## FAQ
 
 1) Log details are empty  
-Usually the container does not have permission to access host log files. Try granting permissions to the host log directory and the `nginxpulse_data` directory:
-```bash
-chmod -R 777 /path/to/logs /path/to/nginxpulse_data
-```
-Then restart the container.
+Usually the container does not have permission to access host log files. See the "Docker Deployment Permissions" section and follow the steps.
 
 2) Logs exist but PV/UV stats are missing  
 By default, private network IPs are excluded. If you want to count intranet traffic, set `PV_EXCLUDE_IPS` to an empty array and restart:
@@ -198,6 +242,17 @@ After restarting, click the "Re-parse" button on the "Log Details" page.
 
 3) Log times are incorrect  
 This is usually caused by an unsynchronized time zone. Confirm the Docker/system time zone is correct, follow the "Time Zone (Important)" section, and re-parse the logs.
+
+4) Cannot start  
+If you see errors like below (older versions may hit this), confirm `nginxpulse_data` is writable or set `TMPDIR` to a writable path:
+```bash
+nginxpulse: initializing postgres data dir at /app/var/pgdata
+/app/entrypoint.sh: line 91: can't create /tmp/tmp.KOdAPn: Permission denied
+```
+Fix (choose one):
+```bash
+-e TMPDIR=/app/var/nginxpulse_data/tmp
+```
 
 ## Directory Structure and Key Files
 

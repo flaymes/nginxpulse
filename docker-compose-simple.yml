@@ -4,6 +4,10 @@ services:
     container_name: nginxpulse_local
     ports:
       - "8088:8088"
+    environment:
+      # 这里的UID/GID需要跟你主机上查到的保持一致
+      PUID: "1000"
+      PGID: "1000"
     volumes:
       - ./docker_local/logs:/share/logs:ro # 挂载日志目录
       - ./docker_local/nginxpulse_data:/app/var/nginxpulse_data #容器内数据持久化

@@ -14,6 +14,8 @@ docker run -d --name nginxpulse \
   nginxpulse:latest
 ```
 
+If logs are mounted but data is empty, it is usually a permission issue. See "Docker Deployment Permissions" in the Deployment guide and align `PUID/PGID` with the host UID/GID.
+
 Open:
 - UI: `http://localhost:8088`
 - API: `http://localhost:8089`

@@ -13,7 +13,7 @@ Timezone issue. The project uses system timezone.
 ## 3. Data is empty or incomplete
 - Parsing not finished yet.
 - Time range or filters are too strict.
-- Log path is wrong or not readable.
+- Log path is wrong or not readable (see "Docker Deployment Permissions" in the Deployment guide).
 
 ## 4. Reparse happens after restart
 - Make sure no stale process is still running.
